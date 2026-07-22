@@ -142,6 +142,10 @@ Benötigte GitHub Secrets:
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
+Optionaler Fallback (falls kein Token genutzt wird):
+
+- `DOCKERHUB_PASSWORD`
+
 Typische publizierte Tags:
 
 - `latest`
