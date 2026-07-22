@@ -103,6 +103,13 @@ What the workflow does:
 5. Generates tags.
 6. Builds and pushes `linux/amd64` and `linux/arm64` images.
 
+Variable precedence for build values (`WP_VERSION`, `PHP_VERSION`, `NODE_VERSION`, `APP_USER`, `APP_UID`, `APP_GID`):
+
+1. `workflow_dispatch` input value
+2. Existing workflow/job environment variable
+3. Repository variable (`vars.*`)
+4. `.env` default value
+
 Required GitHub repository secrets:
 
 - `DOCKERHUB_TOKEN`

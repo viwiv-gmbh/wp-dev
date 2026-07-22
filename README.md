@@ -157,6 +157,13 @@ Typische publizierte Tags:
 - `{WP_VERSION}-php{PHP_VERSION}-node{NODE_VERSION}`
 - `{WP_VERSION}-php{PHP_VERSION}-apache`
 
+Override-Reihenfolge fuer Build-Variablen in GitHub Actions:
+
+1. `workflow_dispatch` Inputs
+2. Bereits gesetzte Job/Workflow-Umgebungsvariablen
+3. Repository Variables (`vars.*`)
+4. `.env` (Default)
+
 ## Security Hinweis
 
 Private Schluessel, Zertifikate und andere Secrets gehoeren nicht ins Repository.

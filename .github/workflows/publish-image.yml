@@ -5,6 +5,31 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      wp_version:
+        description: Override WP_VERSION for this run
+        required: false
+        type: string
+      php_version:
+        description: Override PHP_VERSION for this run
+        required: false
+        type: string
+      node_version:
+        description: Override NODE_VERSION for this run
+        required: false
+        type: string
+      app_user:
+        description: Override APP_USER for this run
+        required: false
+        type: string
+      app_uid:
+        description: Override APP_UID for this run
+        required: false
+        type: string
+      app_gid:
+        description: Override APP_GID for this run
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -17,30 +42,68 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Load build variables from .env
+      - name: Resolve build variables (.env defaults, GitHub overrides)
+        id: vars
+        env:
+          INPUT_WP_VERSION: ${{ github.event.inputs.wp_version }}
+          INPUT_PHP_VERSION: ${{ github.event.inputs.php_version }}
+          INPUT_NODE_VERSION: ${{ github.event.inputs.node_version }}
+          INPUT_APP_USER: ${{ github.event.inputs.app_user }}
+          INPUT_APP_UID: ${{ github.event.inputs.app_uid }}
+          INPUT_APP_GID: ${{ github.event.inputs.app_gid }}
+          VAR_WP_VERSION: ${{ vars.WP_VERSION }}
+          VAR_PHP_VERSION: ${{ vars.PHP_VERSION }}
+          VAR_NODE_VERSION: ${{ vars.NODE_VERSION }}
+          VAR_APP_USER: ${{ vars.APP_USER }}
+          VAR_APP_UID: ${{ vars.APP_UID }}
+          VAR_APP_GID: ${{ vars.APP_GID }}
         run: |
-          set -a
-          source .env
-          set +a
+          get_default_from_env() {
+            local key="$1"
+            grep -E "^${key}=" .env | tail -n 1 | cut -d'=' -f2-
+          }
 
-          echo "NODE_VERSION=${NODE_VERSION}" >> "$GITHUB_ENV"
-          echo "PHP_VERSION=${PHP_VERSION}" >> "$GITHUB_ENV"
-          echo "WP_VERSION=${WP_VERSION}" >> "$GITHUB_ENV"
-          echo "APP_USER=${APP_USER}" >> "$GITHUB_ENV"
-          echo "APP_UID=${APP_UID}" >> "$GITHUB_ENV"
-          echo "APP_GID=${APP_GID}" >> "$GITHUB_ENV"
+          resolve_value() {
+            local key="$1"
+            local input_value="$2"
+            local var_value="$3"
+            local current_value="${!key:-}"
+            local env_default
+            env_default="$(get_default_from_env "$key")"
+
+            local resolved="$input_value"
+            if [ -z "$resolved" ]; then
+              resolved="$current_value"
+            fi
+            if [ -z "$resolved" ]; then
+              resolved="$var_value"
+            fi
+            if [ -z "$resolved" ]; then
+              resolved="$env_default"
+            fi
+
+            echo "${key}=${resolved}" >> "$GITHUB_ENV"
+            echo "$(echo "$key" | tr '[:upper:]' '[:lower:]')=${resolved}" >> "$GITHUB_OUTPUT"
+          }
+
+          resolve_value "WP_VERSION" "$INPUT_WP_VERSION" "$VAR_WP_VERSION"
+          resolve_value "PHP_VERSION" "$INPUT_PHP_VERSION" "$VAR_PHP_VERSION"
+          resolve_value "NODE_VERSION" "$INPUT_NODE_VERSION" "$VAR_NODE_VERSION"
+          resolve_value "APP_USER" "$INPUT_APP_USER" "$VAR_APP_USER"
+          resolve_value "APP_UID" "$INPUT_APP_UID" "$VAR_APP_UID"
+          resolve_value "APP_GID" "$INPUT_APP_GID" "$VAR_APP_GID"
 
       - name: Validate build variables
         run: |
-          if [ -z "${{ env.WP_VERSION }}" ]; then
+          if [ -z "$WP_VERSION" ]; then
             echo "::error::WP_VERSION is empty. Check .env and workflow variable loading."
             exit 1
           fi
-          if [ -z "${{ env.PHP_VERSION }}" ]; then
+          if [ -z "$PHP_VERSION" ]; then
             echo "::error::PHP_VERSION is empty. Check .env and workflow variable loading."
             exit 1
           fi
-          if [ -z "${{ env.NODE_VERSION }}" ]; then
+          if [ -z "$NODE_VERSION" ]; then
             echo "::error::NODE_VERSION is empty. Check .env and workflow variable loading."
             exit 1
           fi
@@ -103,9 +166,9 @@ jobs:
           images: viwiv/wp-dev
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-apache-node${{ env.NODE_VERSION }}
-            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-node${{ env.NODE_VERSION }}
-            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-apache
+            type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-apache-node${{ steps.vars.outputs.node_version }}
+            type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-node${{ steps.vars.outputs.node_version }}
+            type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-apache
 
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v7
@@ -118,9 +181,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NODE_VERSION=${{ env.NODE_VERSION }}
-            PHP_VERSION=${{ env.PHP_VERSION }}
-            WP_VERSION=${{ env.WP_VERSION }}
-            APP_USER=${{ env.APP_USER }}
-            APP_UID=${{ env.APP_UID }}
-            APP_GID=${{ env.APP_GID }}
+            NODE_VERSION=${{ steps.vars.outputs.node_version }}
+            PHP_VERSION=${{ steps.vars.outputs.php_version }}
+            WP_VERSION=${{ steps.vars.outputs.wp_version }}
+            APP_USER=${{ steps.vars.outputs.app_user }}
+            APP_UID=${{ steps.vars.outputs.app_uid }}
+            APP_GID=${{ steps.vars.outputs.app_gid }}
