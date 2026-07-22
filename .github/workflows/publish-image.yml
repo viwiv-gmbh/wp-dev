@@ -72,7 +72,8 @@ jobs:
           echo "mode=$AUTH_MODE" >> "$GITHUB_OUTPUT"
 
       - name: Auth mode
-        run: echo "Using Docker Hub auth mode: ${{ steps.auth.outputs.mode }}"
+        run: |
+          echo "Using Docker Hub auth mode: ${{ steps.auth.outputs.mode }}"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v4
