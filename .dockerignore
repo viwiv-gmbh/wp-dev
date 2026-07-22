@@ -1,0 +1,14 @@
+.git
+.gitlab-ci.yml
+.env
+README.md
+res/
+*.log
+.DS_Store
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+*id_ed25519*
+*.zip

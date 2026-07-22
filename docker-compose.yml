@@ -1,0 +1,10 @@
+services:
+  wordpress:
+    image: psiegfried/wp-dev:${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}
+    container_name: wordpress
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "3000:3000"
+    volumes:
+      - ${HOME}/.claude:/home/${APP_USER:-dev}/.claude

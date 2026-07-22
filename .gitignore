@@ -1,0 +1,14 @@
+# OS noise
+.DS_Store
+
+# Secrets and private material
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+*id_ed25519*
+
+# Build and logs
+*.log
+*.zip

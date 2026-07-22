@@ -1,0 +1,46 @@
+stages:
+  - build
+
+services:
+  - docker:27.5.1-dind
+
+# Use the official Docker image
+image: docker:27.5.1
+
+variables:
+  IMAGE_NAME: psiegfried/wp-dev
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_BUILDKIT: "1"
+  BUILDX_BUILDER: wp-dev-builder
+
+.before_script:
+  before_script:
+    - |
+      if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_PASSWORD" ]; then
+        docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_PASSWORD"
+      else
+        echo "Skipping docker login: DOCKERHUB_USERNAME/DOCKERHUB_PASSWORD not set"
+      fi
+    - set -a; source .env; set +a
+    - docker buildx create --name "$BUILDX_BUILDER" --use || docker buildx use "$BUILDX_BUILDER"
+    - docker buildx inspect --bootstrap
+
+
+build_image_development:
+  extends: .before_script
+  stage: build
+  script:
+    - TAG="${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}"
+    - docker buildx build --platform linux/amd64 --build-arg NODE_VERSION=$NODE_VERSION --build-arg PHP_VERSION=$PHP_VERSION --build-arg WP_VERSION=$WP_VERSION --build-arg APP_UID=$APP_UID --build-arg APP_GID=$APP_GID --cache-from type=registry,ref="$IMAGE_NAME:buildcache" --cache-to type=registry,ref="$IMAGE_NAME:buildcache",mode=max -t "$IMAGE_NAME:$TAG" --load .
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+build_image_production:
+  extends: .before_script
+  stage: build
+  script:
+    - TAG="${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}"
+    - docker buildx build --platform linux/amd64,linux/arm64 --build-arg NODE_VERSION=$NODE_VERSION --build-arg PHP_VERSION=$PHP_VERSION --build-arg WP_VERSION=$WP_VERSION --build-arg APP_UID=$APP_UID --build-arg APP_GID=$APP_GID --cache-from type=registry,ref="$IMAGE_NAME:buildcache" --cache-to type=registry,ref="$IMAGE_NAME:buildcache",mode=max -t "$IMAGE_NAME:latest" -t "$IMAGE_NAME:$TAG" --push .
+  only:
+    refs:
+      - main
