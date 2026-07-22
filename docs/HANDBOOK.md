@@ -14,6 +14,9 @@ Current base and runtime versions are controlled in `.env`:
 - `APP_USER`
 - `APP_UID`
 - `APP_GID`
+- `CLAUDE_CODE_VERSION`
+
+Default is `CLAUDE_CODE_VERSION=none` to keep Node 20 based builds stable.
 
 ## 2) Image Naming and Tag Strategy
 
@@ -110,6 +113,8 @@ Variable precedence for build values (`WP_VERSION`, `PHP_VERSION`, `NODE_VERSION
 3. Repository variable (`vars.*`)
 4. `.env` default value
 
+`CLAUDE_CODE_VERSION` follows the same precedence.
+
 Required GitHub repository secrets:
 
 - `DOCKERHUB_TOKEN`
@@ -128,6 +133,12 @@ Notes:
 - If only `DOCKERHUB_PASSWORD` is set, the workflow uses it as fallback.
 - If `DOCKERHUB_USERNAME` is set as a variable (not a secret), the workflow resolves it correctly.
 - Pipeline pushes public image tags directly to Docker Hub.
+
+Claude Code install behavior:
+
+- `CLAUDE_CODE_VERSION=none` or `off`: skip install.
+- If enabled but Node major is below 22, install is skipped with an informational message.
+- For install attempts, use Node 22+ when targeting latest Claude Code.
 
 ## 6) Release Process
 

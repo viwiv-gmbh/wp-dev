@@ -9,11 +9,12 @@ ARG APP_UID=1000
 ARG APP_GID=1000
 ARG YQ_VERSION=v4.44.3
 ARG MHSENDMAIL_VERSION=v0.2.0-M1
-ARG CLAUDE_CODE_VERSION=latest
+ARG CLAUDE_CODE_VERSION=none
 
 ENV NODE_VERSION=${NODE_VERSION}
 ENV APP_USER=${APP_USER}
 ENV VERSION=${VERSION}
+ENV CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION}
 ENV WORDPRESS_LOCALE=de_CH
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -38,7 +39,15 @@ ENV NVM_DIR=/usr/local/nvm
 ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 900 -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash && \
     /bin/bash -c "source $NVM_DIR/nvm.sh && nvm install ${NODE_VERSION:-node} && nvm alias default ${NODE_VERSION:-node} && nvm use --delete-prefix ${NODE_VERSION:-node}" && \
-    npm install --global yarn @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+        npm install --global yarn && \
+        INSTALLED_NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')" && \
+        if [ "$CLAUDE_CODE_VERSION" = "none" ] || [ "$CLAUDE_CODE_VERSION" = "off" ]; then \
+            echo "Skipping Claude Code install (CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION)"; \
+        elif [ "$INSTALLED_NODE_MAJOR" -lt 22 ]; then \
+            echo "Skipping Claude Code install: requires Node >=22 but current is $(node -v)"; \
+        else \
+            npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; \
+        fi
 
 RUN mkdir -p /home/$APP_USER && \
     cp -r /root/.bashrc /home/$APP_USER/.bashrc && \

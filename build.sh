@@ -12,6 +12,7 @@ fi
 APP_USER=${APP_USER:-dev}
 APP_UID=${APP_UID:-1000}
 APP_GID=${APP_GID:-1000}
+CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-none}
 
 # Optionale Flags
 NO_CACHE="${1:-}"
@@ -27,6 +28,7 @@ docker build ${NO_CACHE:+--no-cache} \
     --build-arg APP_USER=$APP_USER \
     --build-arg APP_UID=$APP_UID \
     --build-arg APP_GID=$APP_GID \
+    --build-arg CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION \
     -t "${IMAGE_NAME}:${VERSION_TAG}" \
     -t "${IMAGE_NAME}:latest" . || {
     echo "❌ Docker build failed"

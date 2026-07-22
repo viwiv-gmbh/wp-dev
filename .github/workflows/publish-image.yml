@@ -30,6 +30,10 @@ on:
         description: Override APP_GID for this run
         required: false
         type: string
+      claude_code_version:
+        description: Override CLAUDE_CODE_VERSION for this run (use none to disable)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -51,12 +55,14 @@ jobs:
           INPUT_APP_USER: ${{ github.event.inputs.app_user }}
           INPUT_APP_UID: ${{ github.event.inputs.app_uid }}
           INPUT_APP_GID: ${{ github.event.inputs.app_gid }}
+          INPUT_CLAUDE_CODE_VERSION: ${{ github.event.inputs.claude_code_version }}
           VAR_WP_VERSION: ${{ vars.WP_VERSION }}
           VAR_PHP_VERSION: ${{ vars.PHP_VERSION }}
           VAR_NODE_VERSION: ${{ vars.NODE_VERSION }}
           VAR_APP_USER: ${{ vars.APP_USER }}
           VAR_APP_UID: ${{ vars.APP_UID }}
           VAR_APP_GID: ${{ vars.APP_GID }}
+          VAR_CLAUDE_CODE_VERSION: ${{ vars.CLAUDE_CODE_VERSION }}
         run: |
           get_default_from_env() {
             local key="$1"
@@ -92,6 +98,7 @@ jobs:
           resolve_value "APP_USER" "$INPUT_APP_USER" "$VAR_APP_USER"
           resolve_value "APP_UID" "$INPUT_APP_UID" "$VAR_APP_UID"
           resolve_value "APP_GID" "$INPUT_APP_GID" "$VAR_APP_GID"
+          resolve_value "CLAUDE_CODE_VERSION" "$INPUT_CLAUDE_CODE_VERSION" "$VAR_CLAUDE_CODE_VERSION"
 
       - name: Validate build variables
         run: |
@@ -187,3 +194,4 @@ jobs:
             APP_USER=${{ steps.vars.outputs.app_user }}
             APP_UID=${{ steps.vars.outputs.app_uid }}
             APP_GID=${{ steps.vars.outputs.app_gid }}
+            CLAUDE_CODE_VERSION=${{ steps.vars.outputs.claude_code_version }}

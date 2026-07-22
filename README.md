@@ -34,7 +34,13 @@ VERSION=1.0.0
 APP_USER=dev
 APP_UID=1000
 APP_GID=1000
+CLAUDE_CODE_VERSION=none
 ```
+
+Hinweis zu Claude Code:
+
+- Standard ist `CLAUDE_CODE_VERSION=none` (deaktiviert), damit Builds mit Node 20 stabil bleiben.
+- Aktivieren: z. B. `CLAUDE_CODE_VERSION=latest` und Node 22+ verwenden.
 
 ## Build
 
@@ -163,6 +169,8 @@ Override-Reihenfolge fuer Build-Variablen in GitHub Actions:
 2. Bereits gesetzte Job/Workflow-Umgebungsvariablen
 3. Repository Variables (`vars.*`)
 4. `.env` (Default)
+
+Das gilt auch fuer `CLAUDE_CODE_VERSION`.
 
 ## Security Hinweis
 
