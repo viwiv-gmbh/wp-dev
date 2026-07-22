@@ -2,6 +2,10 @@
 
 Entwicklungs-optimiertes WordPress Docker Image für schnelle und konsistente lokale Entwicklung und CI-Builds.
 
+## Dokumentation
+
+- Vollstaendiges Betriebs- und Publish-Handbuch: `docs/HANDBOOK.md`
+
 ## Features
 
 - WordPress Basis-Image mit Apache
@@ -131,6 +135,7 @@ GitHub Actions verwendet Docker Buildx mit Registry-Cache:
 
 - Push auf `main`: Multi-Arch Build (`linux/amd64,linux/arm64`) mit Push nach Docker Hub
 - Build Cache: GitHub Actions Cache
+- Workflow-Datei: `.github/workflows/publish-image.yml`
 
 Benötigte GitHub Secrets:
 
