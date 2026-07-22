@@ -105,17 +105,21 @@ What the workflow does:
 
 Required GitHub repository secrets:
 
-- `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
 Optional fallback secret:
 
 - `DOCKERHUB_PASSWORD`
 
+Username location:
+
+- `DOCKERHUB_USERNAME` can be provided as either a repository secret or a repository variable.
+
 Notes:
 
 - `DOCKERHUB_TOKEN` should be a Docker Hub access token, not your account password.
 - If only `DOCKERHUB_PASSWORD` is set, the workflow uses it as fallback.
+- If `DOCKERHUB_USERNAME` is set as a variable (not a secret), the workflow resolves it correctly.
 - Pipeline pushes public image tags directly to Docker Hub.
 
 ## 6) Release Process

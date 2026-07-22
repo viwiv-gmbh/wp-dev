@@ -139,12 +139,16 @@ GitHub Actions verwendet Docker Buildx mit Registry-Cache:
 
 Benötigte GitHub Secrets:
 
-- `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
 Optionaler Fallback (falls kein Token genutzt wird):
 
 - `DOCKERHUB_PASSWORD`
+
+Docker Hub Username kann als Repository Secret oder Repository Variable gesetzt werden:
+
+- Secret: `DOCKERHUB_USERNAME`
+- Variable: `DOCKERHUB_USERNAME`
 
 Typische publizierte Tags:
 
