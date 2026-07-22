@@ -1,6 +1,6 @@
 services:
   wordpress:
-    image: psiegfried/wp-dev:${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}
+    image: viwiv/wp-dev:${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}
     container_name: wordpress
     restart: unless-stopped
     ports:

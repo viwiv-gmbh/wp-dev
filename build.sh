@@ -16,6 +16,8 @@ APP_GID=${APP_GID:-1000}
 # Optionale Flags
 NO_CACHE="${1:-}"
 PUSH="${2:-}"
+IMAGE_NAME="viwiv/wp-dev"
+VERSION_TAG="${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}"
 
 docker build ${NO_CACHE:+--no-cache} \
     --build-arg NODE_VERSION=$NODE_VERSION \
@@ -25,8 +27,8 @@ docker build ${NO_CACHE:+--no-cache} \
     --build-arg APP_USER=$APP_USER \
     --build-arg APP_UID=$APP_UID \
     --build-arg APP_GID=$APP_GID \
-    -t "psiegfried/wp-dev:${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}" \
-    -t "psiegfried/wp-dev:latest" . || {
+    -t "${IMAGE_NAME}:${VERSION_TAG}" \
+    -t "${IMAGE_NAME}:latest" . || {
     echo "❌ Docker build failed"
     exit 1
 }
@@ -34,8 +36,8 @@ docker build ${NO_CACHE:+--no-cache} \
 echo "✅ Docker build successful"
 
 if [ "$PUSH" == "push" ]; then
-    docker push "psiegfried/wp-dev:${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}" && \
-    docker push "psiegfried/wp-dev:latest" && \
+    docker push "${IMAGE_NAME}:${VERSION_TAG}" && \
+    docker push "${IMAGE_NAME}:latest" && \
         echo "✅ Docker push successful" || {
         echo "❌ Docker push failed"
         exit 1

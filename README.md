@@ -55,8 +55,8 @@ APP_GID=1000
 Das Script erzeugt folgende Tags:
 
 ```text
-psiegfried/wp-dev:{WP_VERSION}-php{PHP_VERSION}-node{NODE_VERSION}
-psiegfried/wp-dev:latest
+viwiv/wp-dev:{WP_VERSION}-php{PHP_VERSION}-apache-node{NODE_VERSION}
+viwiv/wp-dev:latest
 ```
 
 ## Verwendung
@@ -69,7 +69,7 @@ docker run -d \
   -p 8080:80 \
   -p 3000:3000 \
   -v "$HOME/.claude:/home/dev/.claude" \
-  psiegfried/wp-dev:${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}
+  viwiv/wp-dev:${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}
 ```
 
 ### Mit Docker Compose
@@ -127,16 +127,22 @@ docker exec wordpress chmod -R 775 /var/www/html
 
 ## CI/CD
 
-GitLab CI verwendet Docker Buildx mit Registry-Cache:
+GitHub Actions verwendet Docker Buildx mit Registry-Cache:
 
-- Merge Requests: `linux/amd64` Build
-- `main`: Multi-Arch Build (`linux/amd64,linux/arm64`) mit Push
-- Build Cache: `psiegfried/wp-dev:buildcache`
+- Push auf `main`: Multi-Arch Build (`linux/amd64,linux/arm64`) mit Push nach Docker Hub
+- Build Cache: GitHub Actions Cache
 
-Benötigte CI-Variablen:
+Benötigte GitHub Secrets:
 
 - `DOCKERHUB_USERNAME`
-- `DOCKERHUB_PASSWORD`
+- `DOCKERHUB_TOKEN`
+
+Typische publizierte Tags:
+
+- `latest`
+- `{WP_VERSION}-php{PHP_VERSION}-apache-node{NODE_VERSION}`
+- `{WP_VERSION}-php{PHP_VERSION}-node{NODE_VERSION}`
+- `{WP_VERSION}-php{PHP_VERSION}-apache`
 
 ## Security Hinweis
 

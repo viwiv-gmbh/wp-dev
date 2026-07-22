@@ -8,7 +8,7 @@ services:
 image: docker:27.5.1
 
 variables:
-  IMAGE_NAME: psiegfried/wp-dev
+  IMAGE_NAME: viwiv/wp-dev
   DOCKER_TLS_CERTDIR: ""
   DOCKER_BUILDKIT: "1"
   BUILDX_BUILDER: wp-dev-builder
