@@ -176,3 +176,8 @@ Das gilt auch fuer `CLAUDE_CODE_VERSION`.
 
 Private Schluessel, Zertifikate und andere Secrets gehoeren nicht ins Repository.
 Nutzen Sie lokale, nicht versionierte Dateien oder Secret-Management in CI.
+
+Hinweis zu MailHog/mhsendmail:
+
+- Die Installation von `mhsendmail` ist im Build als best-effort konfiguriert.
+- Wenn fuer eine Architektur im gewaehlten Release kein Binary existiert, wird der Build nicht abgebrochen.

@@ -154,6 +154,12 @@ If publish fails:
 - Confirm resolved version variables are non-empty.
 - Check Buildx logs for architecture-specific failures.
 
+MailHog/mhsendmail 404 notes:
+
+- Upstream release assets may be incomplete for some architectures.
+- Build is configured to continue if `mhsendmail` binary is unavailable.
+- If strict MailHog sendmail behavior is required, pin a release that ships both amd64 and arm64 binaries.
+
 ## 10) Ownership
 
 - Docker Hub repo should remain under company namespace.

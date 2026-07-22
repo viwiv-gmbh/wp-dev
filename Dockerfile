@@ -76,9 +76,18 @@ RUN set -eux; \
     rm -f /tmp/composer-setup.php && \
     printf '%s\n' 'file_uploads = On' 'memory_limit = 256M' 'upload_max_filesize = 256M' 'post_max_size = 256M' 'max_execution_time = 60' 'max_input_time = 60' > $PHP_INI_DIR/conf.d/wp.ini && \
     ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-    curl --location --silent --show-error --fail --output /usr/local/bin/mhsendmail https://github.com/evertiro/mhsendmail/releases/download/${MHSENDMAIL_VERSION}/mhsendmail_linux_${ARCH} && \
-    chmod +x /usr/local/bin/mhsendmail && \
-    echo 'sendmail_path="/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025"' > $PHP_INI_DIR/conf.d/mailhog.ini
+        PRIMARY_URL="https://github.com/evertiro/mhsendmail/releases/download/${MHSENDMAIL_VERSION}/mhsendmail_linux_${ARCH}" && \
+        FALLBACK_URL="" && \
+        if [ "$ARCH" = "amd64" ]; then FALLBACK_URL="https://github.com/evertiro/mhsendmail/releases/download/${MHSENDMAIL_VERSION}/mhsendmail_linux_x86_64"; fi && \
+        if curl --location --silent --show-error --fail --output /usr/local/bin/mhsendmail "$PRIMARY_URL"; then \
+            chmod +x /usr/local/bin/mhsendmail && \
+            echo 'sendmail_path="/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025"' > $PHP_INI_DIR/conf.d/mailhog.ini; \
+        elif [ -n "$FALLBACK_URL" ] && curl --location --silent --show-error --fail --output /usr/local/bin/mhsendmail "$FALLBACK_URL"; then \
+            chmod +x /usr/local/bin/mhsendmail && \
+            echo 'sendmail_path="/usr/local/bin/mhsendmail --smtp-addr=mailhog:1025"' > $PHP_INI_DIR/conf.d/mailhog.ini; \
+        else \
+            echo "mhsendmail binary not available for ${ARCH} at ${MHSENDMAIL_VERSION}; skipping MailHog sendmail integration"; \
+        fi
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
