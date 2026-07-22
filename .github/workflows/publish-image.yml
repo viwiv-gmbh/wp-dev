@@ -30,6 +30,21 @@ jobs:
           echo "APP_UID=${APP_UID}" >> "$GITHUB_ENV"
           echo "APP_GID=${APP_GID}" >> "$GITHUB_ENV"
 
+      - name: Validate build variables
+        run: |
+          if [ -z "${{ env.WP_VERSION }}" ]; then
+            echo "::error::WP_VERSION is empty. Check .env and workflow variable loading."
+            exit 1
+          fi
+          if [ -z "${{ env.PHP_VERSION }}" ]; then
+            echo "::error::PHP_VERSION is empty. Check .env and workflow variable loading."
+            exit 1
+          fi
+          if [ -z "${{ env.NODE_VERSION }}" ]; then
+            echo "::error::NODE_VERSION is empty. Check .env and workflow variable loading."
+            exit 1
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
@@ -88,9 +103,9 @@ jobs:
           images: viwiv/wp-dev
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value={{env.WP_VERSION}}-php{{env.PHP_VERSION}}-apache-node{{env.NODE_VERSION}}
-            type=raw,value={{env.WP_VERSION}}-php{{env.PHP_VERSION}}-node{{env.NODE_VERSION}}
-            type=raw,value={{env.WP_VERSION}}-php{{env.PHP_VERSION}}-apache
+            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-apache-node${{ env.NODE_VERSION }}
+            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-node${{ env.NODE_VERSION }}
+            type=raw,value=${{ env.WP_VERSION }}-php${{ env.PHP_VERSION }}-apache
 
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v7
