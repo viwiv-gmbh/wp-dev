@@ -1,12 +1,12 @@
 # wp-dev Handbook
 
-This handbook documents the full operational setup for the public Docker image `viwiv/wp-dev`.
+This handbook documents the operational setup for the public Docker image `viwiv/wp-dev`.
 
 ## 1) Purpose
 
 `wp-dev` is a development-oriented WordPress image based on the official WordPress Apache image, extended with Node.js tooling and developer utilities.
 
-Current base and runtime versions are controlled in `.env`:
+Current default versions are controlled in `.env`:
 
 - `WP_VERSION`
 - `PHP_VERSION`
@@ -16,7 +16,10 @@ Current base and runtime versions are controlled in `.env`:
 - `APP_GID`
 - `CLAUDE_CODE_VERSION`
 
-Default is `CLAUDE_CODE_VERSION=none` to keep Node 20 based builds stable.
+Current defaults:
+
+- `NODE_VERSION=22.0.0`
+- `CLAUDE_CODE_VERSION=latest`
 
 ## 2) Image Naming and Tag Strategy
 
@@ -31,17 +34,12 @@ Published tags:
 - `{WP_VERSION}-php{PHP_VERSION}-node{NODE_VERSION}`
 - `{WP_VERSION}-php{PHP_VERSION}-apache`
 
-Example with current `.env` values:
+Example with current defaults:
 
-- `viwiv/wp-dev:7.0.2-php8.4-apache-node20.11.0`
-- `viwiv/wp-dev:7.0.2-php8.4-node20.11.0`
+- `viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0`
+- `viwiv/wp-dev:7.0.2-php8.4-node22.0.0`
 - `viwiv/wp-dev:7.0.2-php8.4-apache`
 - `viwiv/wp-dev:latest`
-
-Why both styles exist:
-
-- `...-apache-node...` is the most explicit and should be treated as the canonical tag for this project.
-- `...-apache` and `...-node...` are compatibility-oriented convenience tags.
 
 ## 3) Repository Structure
 
@@ -54,7 +52,7 @@ Key files:
 - `.github/workflows/publish-image.yml`: GitHub Actions publish pipeline.
 - `.dockerignore` and `.gitignore`: build context and secret hygiene.
 
-## 4) Local Build and Local Runtime
+## 4) Local Build and Runtime
 
 Build locally:
 
@@ -68,22 +66,16 @@ Build without cache:
 ./build.sh no-cache
 ```
 
-Build and push (manual local push):
+Build and push manually:
 
 ```bash
 ./build.sh "" push
 ```
 
-Run local container:
+Run locally:
 
 ```bash
 docker compose up -d
-```
-
-Inspect image tags:
-
-```bash
-docker image ls | grep "viwiv/wp-dev"
 ```
 
 ## 5) GitHub Actions Publish Pipeline
@@ -97,25 +89,14 @@ Triggers:
 - Push to `main`
 - Manual run via `workflow_dispatch`
 
-What the workflow does:
-
-1. Checks out repository.
-2. Loads variables from `.env`.
-3. Sets up QEMU and Buildx for multi-arch builds.
-4. Authenticates to Docker Hub.
-5. Generates tags.
-6. Builds and pushes `linux/amd64` and `linux/arm64` images.
-
-Variable precedence for build values (`WP_VERSION`, `PHP_VERSION`, `NODE_VERSION`, `APP_USER`, `APP_UID`, `APP_GID`):
+Variable precedence for build values (`WP_VERSION`, `PHP_VERSION`, `NODE_VERSION`, `APP_USER`, `APP_UID`, `APP_GID`, `CLAUDE_CODE_VERSION`):
 
 1. `workflow_dispatch` input value
 2. Existing workflow/job environment variable
 3. Repository variable (`vars.*`)
 4. `.env` default value
 
-`CLAUDE_CODE_VERSION` follows the same precedence.
-
-Required GitHub repository secrets:
+Required GitHub secrets:
 
 - `DOCKERHUB_TOKEN`
 
@@ -123,101 +104,57 @@ Optional fallback secret:
 
 - `DOCKERHUB_PASSWORD`
 
-Username location:
+Docker Hub username location:
 
-- `DOCKERHUB_USERNAME` can be provided as either a repository secret or a repository variable.
+- Secret: `DOCKERHUB_USERNAME`
+- Variable: `DOCKERHUB_USERNAME`
 
-Notes:
+## 6) Claude Code Behavior
 
-- `DOCKERHUB_TOKEN` should be a Docker Hub access token, not your account password.
-- If only `DOCKERHUB_PASSWORD` is set, the workflow uses it as fallback.
-- If `DOCKERHUB_USERNAME` is set as a variable (not a secret), the workflow resolves it correctly.
-- Pipeline pushes public image tags directly to Docker Hub.
+Default behavior:
 
-Claude Code install behavior:
+- Installs `@anthropic-ai/claude-code@latest`.
 
-- `CLAUDE_CODE_VERSION=none` or `off`: skip install.
-- If enabled but Node major is below 22, install is skipped with an informational message.
-- For install attempts, use Node 22+ when targeting latest Claude Code.
+Disable explicitly:
 
-## 6) Release Process
+- `CLAUDE_CODE_VERSION=none` or `off`
 
-Recommended process for a new image release:
+Compatibility guard:
 
-1. Update `.env` versions.
-2. Run local build and smoke test.
-3. Commit and push to `main`.
-4. Verify GitHub Actions workflow success.
-5. Verify tags on Docker Hub.
-6. Pull and test published image by exact tag.
+- If `CLAUDE_CODE_VERSION` is enabled but Node major is below 22, install is skipped with an informational message.
 
-Suggested verification commands:
+## 7) Release Process
+
+1. Update `.env` or set workflow overrides.
+2. Build locally and smoke test.
+3. Push to `main`.
+4. Verify workflow success.
+5. Verify tags in Docker Hub.
+
+Suggested checks:
 
 ```bash
-docker pull viwiv/wp-dev:7.0.2-php8.4-apache-node20.11.0
-docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node20.11.0 php -v
-docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node20.11.0 wp --info
-docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node20.11.0 node -v
+docker pull viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0
+docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0 php -v
+docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0 wp --info
+docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0 node -v
 ```
 
-## 7) Rollback Strategy
+## 8) Security
 
-If a newly published tag is broken:
-
-1. Do not modify immutable versioned tags if avoidable.
-2. Publish a corrected patch tag (for example, update version and republish).
-3. Move `latest` only after validation.
-4. Communicate the known-good tag to users.
-
-## 8) Security and Compliance
-
-Repository hardening already applied:
-
-- No private SSH keys in repository.
-- No private TLS key material in repository.
-- Secret-like files ignored via `.gitignore` and `.dockerignore` patterns.
-- Legacy branch history was rewritten and replaced by a clean public `main` history.
-
-Operational rules:
-
-- Never commit credentials, private keys, TLS keys, or `.env` secrets.
-- Use GitHub Secrets for pipeline credentials.
+- No private keys or certs in repository.
+- Keep credentials in GitHub Secrets.
 - Rotate Docker Hub token if exposure is suspected.
 
-## 9) Maintenance Checklist
+## 9) Troubleshooting
 
-For each maintenance cycle:
+If publish fails:
 
-1. Check upstream WordPress and PHP patch versions.
-2. Check Node.js LTS updates.
-3. Build locally and run basic runtime checks.
-4. Push to `main` and verify multi-arch publish.
-5. Validate final tags on Docker Hub.
-6. Update `README.md` if tag or workflow behavior changed.
+- Confirm `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured.
+- Confirm resolved version variables are non-empty.
+- Check Buildx logs for architecture-specific failures.
 
-## 10) Troubleshooting
+## 10) Ownership
 
-Docker Hub login issues in Actions:
-
-- Ensure `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` exist in repo secrets.
-- Ensure token has permission to push to `viwiv/wp-dev`.
-
-Tag mismatch or missing tags:
-
-- Check `.env` values used by workflow.
-- Confirm workflow run used the latest commit from `main`.
-
-Architecture-specific failures:
-
-- Review Buildx output in workflow logs.
-- Retry after clearing cache if needed.
-
-## 11) Ownership and Support
-
-Recommended ownership model:
-
-- Docker Hub repository owned by company account namespace.
-- GitHub repository owned by company organization.
-- At least two maintainers with admin access to both platforms.
-
-This reduces single-person risk and simplifies long-term maintenance.
+- Docker Hub repo should remain under company namespace.
+- Keep at least two maintainers with admin access.

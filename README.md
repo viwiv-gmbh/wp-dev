@@ -27,20 +27,20 @@ Entwicklungs-optimiertes WordPress Docker Image für schnelle und konsistente lo
 Alle Versionen und Build-Parameter werden über `.env` gesteuert:
 
 ```bash
-NODE_VERSION=20.11.0
+NODE_VERSION=22.0.0
 PHP_VERSION=8.4
 WP_VERSION=7.0.2
 VERSION=1.0.0
 APP_USER=dev
 APP_UID=1000
 APP_GID=1000
-CLAUDE_CODE_VERSION=none
+CLAUDE_CODE_VERSION=latest
 ```
 
 Hinweis zu Claude Code:
 
-- Standard ist `CLAUDE_CODE_VERSION=none` (deaktiviert), damit Builds mit Node 20 stabil bleiben.
-- Aktivieren: z. B. `CLAUDE_CODE_VERSION=latest` und Node 22+ verwenden.
+- Standard ist `CLAUDE_CODE_VERSION=latest` bei `NODE_VERSION=22.0.0`.
+- Deaktivieren: `CLAUDE_CODE_VERSION=none` oder `off`.
 
 ## Build
 
