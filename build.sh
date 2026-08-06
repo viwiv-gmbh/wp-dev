@@ -1,10 +1,12 @@
 #!/bin/bash
 set -eo pipefail
 
-if [[ -f .env ]]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
     set -a
     # shellcheck disable=SC1091
-    source .env
+    source "$SCRIPT_DIR/.env"
     set +a
 fi
 
@@ -13,6 +15,10 @@ APP_USER=${APP_USER:-dev}
 APP_UID=${APP_UID:-1000}
 APP_GID=${APP_GID:-1000}
 CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-latest}
+NODE_VERSION=${NODE_VERSION:-22.0.0}
+PHP_VERSION=${PHP_VERSION:-8.4}
+WP_VERSION=${WP_VERSION:-7.0.2}
+VERSION=${VERSION:-1.0.0}
 
 # Optionale Flags
 NO_CACHE="${1:-}"

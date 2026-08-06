@@ -30,7 +30,7 @@ RUN set -eux; \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl iproute2 rsync wget zip unzip git libntirpc-dev vim python3-launchpadlib \
-    libmagickwand-dev libzip-dev mariadb-client openssh-client && \
+    libmagickwand-dev libzip-dev mariadb-client openssh-client libgcc-s1 && \
     cd /usr/bin && ln -sf python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/* 
 
