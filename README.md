@@ -44,6 +44,20 @@ Hinweis zu Claude Code:
 
 ## Build
 
+### Mit Makefile
+
+```bash
+make build
+make build-no-cache
+make build-push
+```
+
+Optionaler Check des aufgeloesten WordPress-Base-Images:
+
+```bash
+make check-base-image
+```
+
 ### Standard Build
 
 ```bash
