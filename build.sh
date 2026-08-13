@@ -25,6 +25,15 @@ NO_CACHE="${1:-}"
 PUSH="${2:-}"
 IMAGE_NAME="viwiv/wp-dev"
 VERSION_TAG="${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}"
+BASE_IMAGE="wordpress:${WP_VERSION}-php${PHP_VERSION}-apache"
+
+echo "🔎 Preflight: checking base image tag ${BASE_IMAGE}"
+if ! docker manifest inspect "${BASE_IMAGE}" >/dev/null 2>&1; then
+    echo "❌ Preflight failed: base image tag not found: ${BASE_IMAGE}"
+    echo "   Update WP_VERSION/PHP_VERSION in .env to a valid tag before building."
+    exit 1
+fi
+echo "✅ Preflight passed: ${BASE_IMAGE} exists"
 
 docker build ${NO_CACHE:+--no-cache} \
     --build-arg NODE_VERSION=$NODE_VERSION \
