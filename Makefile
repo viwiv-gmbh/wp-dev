@@ -18,13 +18,13 @@ help:
 	@echo "  make check-base-image - Validate wordpress base image tag"
 	@echo "  make print-config    - Show resolved WP/PHP versions"
 
-build:
+build: check-base-image
 	@$(BUILD_SCRIPT)
 
-build-no-cache:
+build-no-cache: check-base-image
 	@$(BUILD_SCRIPT) no-cache
 
-build-push:
+build-push: check-base-image
 	@$(BUILD_SCRIPT) "" push
 
 
@@ -46,10 +46,13 @@ check-base-image:
 	PHP_VERSION="$${PHP_VERSION:-$(DEFAULT_PHP_VERSION)}"; \
 	BASE_IMAGE="wordpress:$$WP_VERSION-php$$PHP_VERSION-apache"; \
 	echo "Checking $$BASE_IMAGE"; \
-	if docker manifest inspect "$$BASE_IMAGE" >/dev/null 2>&1; then \
+	MANIFEST_OUT="$$(docker manifest inspect "$$BASE_IMAGE" 2>&1)"; MANIFEST_EXIT=$$?; \
+	if [ $$MANIFEST_EXIT -eq 0 ]; then \
 		echo "Base image exists"; \
 	else \
-		echo "Base image not found: $$BASE_IMAGE"; \
+		echo "Base image not found or registry check failed: $$BASE_IMAGE"; \
+		echo "docker manifest inspect output:"; \
+		echo "$$MANIFEST_OUT"; \
 		echo "Set valid WP_VERSION/PHP_VERSION values in .env and try again"; \
 		echo "If this still fails for known-valid tags, check Docker network/auth access"; \
 		exit 1; \
