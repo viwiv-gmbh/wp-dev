@@ -8,3 +8,10 @@ services:
       - "3000:3000"
     volumes:
       - ${HOME}/.claude:/home/${APP_USER:-dev}/.claude
+      # Writable known_hosts store: home dirs such as /root/.ssh are often
+      # mounted read-only, so accepted SSH host keys are persisted here and
+      # survive container recreation.
+      - ssh-known-hosts:/var/lib/ssh
+
+volumes:
+  ssh-known-hosts:

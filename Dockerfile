@@ -89,6 +89,36 @@ RUN set -eux; \
             echo "mhsendmail binary not available for ${ARCH} at ${MHSENDMAIL_VERSION}; skipping MailHog sendmail integration"; \
         fi
 
+# --- SSH host keys --------------------------------------------------------
+# Home directories are often mounted read-only into the container
+# (e.g. lima-... on /root/.ssh type virtiofs (ro,relatime)), so ssh can never
+# persist an accepted host key and re-prompts in every session.
+# 1) Trusted host keys are baked image-wide into /etc/ssh/ssh_known_hosts,
+#    independent of any host mount.
+# 2) Every other host gets a writable known_hosts outside the read-only mount,
+#    wired up via /etc/ssh/ssh_config.d/10-known-hosts.conf.
+# Pinned SHA256 fingerprints are verified at build time; adding a host key to
+# ssh/ssh_known_hosts without adding its fingerprint here fails the build.
+ARG EXPECTED_SSH_FINGERPRINTS="SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s"
+
+COPY ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts
+COPY ssh/10-known-hosts.conf /etc/ssh/ssh_config.d/10-known-hosts.conf
+
+RUN set -eux; \
+    chmod 0644 /etc/ssh/ssh_known_hosts /etc/ssh/ssh_config.d/10-known-hosts.conf; \
+    for fp in $EXPECTED_SSH_FINGERPRINTS; do \
+        ssh-keygen -lf /etc/ssh/ssh_known_hosts | grep -qF " $fp " || \
+            { echo "Pinned SSH host key fingerprint missing: $fp"; exit 1; }; \
+    done; \
+    ssh-keygen -F github.com -f /etc/ssh/ssh_known_hosts > /dev/null; \
+    grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/ssh_config\.d/\*\.conf' /etc/ssh/ssh_config || \
+        { printf '%s\n' 'Include /etc/ssh/ssh_config.d/*.conf' | cat - /etc/ssh/ssh_config > /tmp/ssh_config; \
+          install -m 0644 /tmp/ssh_config /etc/ssh/ssh_config; rm -f /tmp/ssh_config; }; \
+    install -d -m 0775 -o root -g www-data /var/lib/ssh; \
+    : > /var/lib/ssh/known_hosts; \
+    chown root:www-data /var/lib/ssh/known_hosts; \
+    chmod 0664 /var/lib/ssh/known_hosts
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
