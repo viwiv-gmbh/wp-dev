@@ -15,6 +15,7 @@ Entwicklungs-optimiertes WordPress Docker Image für schnelle und konsistente lo
 - MailHog Integration (`mailhog:1025`)
 - yq für YAML-Verarbeitung (architekturabhängige Installation)
 - Claude Code CLI vorinstalliert
+- SSH-Host-Keys von GitHub fest im Image, plus beschreibbarer `known_hosts`-Pfad
 - Multi-Arch Build (amd64/arm64) via Buildx
 
 ## Voraussetzungen
@@ -123,6 +124,49 @@ claude-bootstrap
 | `/home/dev` | Benutzer-Home im Standard-Setup |
 | `/usr/local/nvm` | Node Version Manager |
 | `/usr/bin/yq` | YAML Query Tool |
+| `/etc/ssh/ssh_known_hosts` | Fest eingebackene SSH-Host-Keys (u.a. `github.com`) |
+| `/var/lib/ssh/known_hosts` | Beschreibbarer `known_hosts` fuer alle weiteren Hosts |
+
+## SSH Host Keys
+
+Home-Verzeichnisse werden haeufig read-only in den Container gemountet
+(z.B. `lima-... on /root/.ssh type virtiofs (ro,relatime)`). SSH kann einen
+bestaetigten Host-Key dann nicht in `~/.ssh/known_hosts` schreiben
+(`tee: /root/.ssh/known_hosts: Read-only file system`), weshalb die
+Bestaetigungsabfrage bei `git push` / `git clone` in jeder Session erneut kommt.
+
+Das Image loest das zweifach:
+
+1. **Fest eingebacken:** Die Host-Keys von `github.com` (ed25519, ecdsa, rsa)
+   liegen in `/etc/ssh/ssh_known_hosts` — unabhaengig vom Host-Mount. Die Keys
+   stehen versioniert in `ssh/ssh_known_hosts`; ihre SHA256-Fingerprints sind im
+   `Dockerfile` (`EXPECTED_SSH_FINGERPRINTS`) gepinnt und werden zur Build-Zeit
+   geprueft. Ein veraenderter oder unbekannter Key laesst den Build fehlschlagen.
+2. **Beschreibbarer Pfad:** `/etc/ssh/ssh_config.d/10-known-hosts.conf` setzt
+
+   ```text
+   UserKnownHostsFile /var/lib/ssh/known_hosts ~/.ssh/known_hosts
+   ```
+
+   SSH schreibt neue Eintraege immer in die **erste** Datei, also nach
+   `/var/lib/ssh/known_hosts` ausserhalb des read-only Mounts. `~/.ssh/known_hosts`
+   bleibt lesend eingebunden. In `docker-compose.yml` liegt darauf das Volume
+   `ssh-known-hosts`, damit die Eintraege ein Neuerstellen des Containers ueberleben.
+
+Pruefen im Container:
+
+```bash
+ssh -G github.com | grep -i knownhostsfile
+ssh -T -o BatchMode=yes git@github.com   # kein Host-Key-Prompt mehr
+```
+
+Weiteren Host fest einbacken:
+
+```bash
+ssh-keyscan -t ed25519 example.com >> ssh/ssh_known_hosts
+ssh-keygen -lf ssh/ssh_known_hosts       # Fingerprint gegen die Quelle pruefen
+# Fingerprint zusaetzlich in EXPECTED_SSH_FINGERPRINTS im Dockerfile eintragen
+```
 
 ## Berechtigungen
 
