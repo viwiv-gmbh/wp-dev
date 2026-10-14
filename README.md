@@ -116,6 +116,12 @@ claude --version
 claude-bootstrap
 ```
 
+`claude-bootstrap` installiert einmal pro Profil Skills per `npx skills add`
+(ungepinnt aus dem Netz). **In WPorbit-Projekten tut es nichts:** Dort verwaltet
+WPorbit die Skills mit festgelegten Ständen und Prüfsumme (erkannt an
+`WPORBIT_PROJECT` oder `skills/.wporbit-official`). Es beachtet
+`CLAUDE_CONFIG_DIR`.
+
 ## Wichtige Pfade
 
 | Pfad | Beschreibung |
