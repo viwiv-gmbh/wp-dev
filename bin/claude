@@ -1,0 +1,18 @@
+#!/bin/sh
+# Claude Code läuft im Container als dev, nicht als root (Spec 017 D4, WPorbit).
+#
+# Als root erreicht alles, was Claude ausführt, den SSH-Agent ohne Einschränkung
+# und die Anmeldung jedes Benutzers. WPorbit setzt WPORBIT_CONTAINER_USER=dev,
+# sobald die App Terminal und Claude als dev startet; dann wird root abgewiesen.
+# Ohne die Variable (ältere App) nur eine Warnung, damit Claude nicht ausfällt.
+set -eu
+REAL="$(dirname "$0")/claude.real"
+
+if [ "$(id -u)" = 0 ]; then
+    if [ "${WPORBIT_CONTAINER_USER:-}" = "dev" ]; then
+        echo "Claude läuft im Container als dev. Öffne in WPorbit ›Terminal‹ statt ›Terminal (root)‹." >&2
+        exit 1
+    fi
+    echo "Hinweis: Claude läuft hier als root. Mit einer neueren WPorbit-Version läuft es als dev." >&2
+fi
+exec "$REAL" "$@"

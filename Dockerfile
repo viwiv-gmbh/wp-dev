@@ -25,12 +25,12 @@ RUN set -eux; \
     curl -fsSLo /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
     curl -fsSLo /tmp/wp-cli.phar.sha512 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar.sha512; \
     echo "$(cat /tmp/wp-cli.phar.sha512)  /tmp/wp-cli.phar" | sha512sum -c -; \
-    install -m 0755 /tmp/wp-cli.phar /usr/local/bin/wp; \
+    install -m 0755 /tmp/wp-cli.phar /usr/local/bin/wp-cli.phar; \
     rm -f /tmp/wp-cli.phar /tmp/wp-cli.phar.sha512
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl iproute2 rsync wget zip unzip git libntirpc-dev vim python3-launchpadlib \
-    libmagickwand-dev libzip-dev mariadb-client openssh-client libgcc-s1 && \
+    libmagickwand-dev libzip-dev mariadb-client openssh-client libgcc-s1 sudo && \
     cd /usr/bin && ln -sf python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/* 
 
@@ -121,6 +121,26 @@ RUN set -eux; \
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# --- Kein root für Site-Code und Claude (Spec 017, WPorbit) -------------------
+# WP-CLI läuft immer als www-data: `wp` ist ein Wrapper vor wp-cli.phar, und
+# $APP_USER darf per sudo genau das, nichts sonst. `claude` bekommt einen
+# Wächter, der root abweist, sobald WPorbit WPORBIT_CONTAINER_USER=dev setzt.
+COPY bin/wp /usr/local/bin/wp
+COPY bin/claude /tmp/claude-guard
+COPY bin/sudoers-wporbit-wp /tmp/sudoers-wporbit-wp
+RUN set -eux; \
+    chmod 0755 /usr/local/bin/wp; \
+    sed "s/__APP_USER__/${APP_USER}/g" /tmp/sudoers-wporbit-wp > /etc/sudoers.d/wporbit-wp; \
+    chmod 0440 /etc/sudoers.d/wporbit-wp; \
+    visudo -cf /etc/sudoers.d/wporbit-wp; \
+    rm -f /tmp/sudoers-wporbit-wp; \
+    CLAUDE_BIN="$(command -v claude || true)"; \
+    if [ -n "$CLAUDE_BIN" ]; then \
+        mv "$CLAUDE_BIN" "$(dirname "$CLAUDE_BIN")/claude.real"; \
+        install -m 0755 /tmp/claude-guard "$CLAUDE_BIN"; \
+    fi; \
+    rm -f /tmp/claude-guard
 
 COPY claude-bootstrap.sh /usr/local/bin/claude-bootstrap
 RUN chmod +x /usr/local/bin/claude-bootstrap

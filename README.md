@@ -106,8 +106,12 @@ docker compose up -d
 ### In den Container gehen
 
 ```bash
-docker exec -it wordpress bash
+docker exec -it --user dev wordpress bash
 ```
+
+Als `dev` arbeiten, nicht als root: Code der Site und Claude sollen den
+SSH-Agent und fremde Anmeldungen nicht als root erreichen (siehe
+„Berechtigungen“).
 
 ### Claude Code im Container
 
@@ -121,6 +125,10 @@ claude-bootstrap
 WPorbit die Skills mit festgelegten Ständen und Prüfsumme (erkannt an
 `WPORBIT_PROJECT` oder `skills/.wporbit-official`). Es beachtet
 `CLAUDE_CONFIG_DIR`.
+
+`claude` ist ein Wächter vor dem eigentlichen Programm (`claude.real`): Als
+root gibt er eine Warnung aus. Setzt WPorbit `WPORBIT_CONTAINER_USER=dev`,
+weist er root ab und verweist auf das Terminal als `dev`.
 
 ## Wichtige Pfade
 
@@ -181,6 +189,21 @@ Das Image konfiguriert automatisch:
 - Benutzer: `dev` (standardmaessig)
 - Gruppe: `www-data` für `/var/www`
 - Berechtigungen: `775` mit setgid auf `/var/www`
+
+### WP-CLI immer als www-data
+
+`wp` ist ein Wrapper vor `/usr/local/bin/wp-cli.phar`. WP-CLI laedt den Code
+der Site (Plugins, Themes, `wp-config.php`) und laeuft darum immer als
+`www-data`, egal wer `wp` aufruft:
+
+| Aufruf als | Weg |
+|---|---|
+| `www-data` | direkt |
+| `dev` | `sudo -u www-data`, einzige Regel in `/etc/sudoers.d/wporbit-wp` |
+| `root` | `setpriv` nach `www-data` |
+
+`--allow-root` ist nie mehr noetig und wird entfernt. `dev` darf per `sudo`
+nichts anderes. Pruefen: `./tests/no-root.sh <image>`.
 
 ## Backup und Restore
 
