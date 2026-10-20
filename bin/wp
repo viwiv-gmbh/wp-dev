@@ -1,0 +1,25 @@
+#!/bin/sh
+# WP-CLI läuft im Container immer als www-data (Spec 017 B, WPorbit).
+#
+# WP-CLI lädt den Code der Site: Plugins, Themes, wp-config.php. Als root oder
+# als dev erreichte dieser Code den SSH-Agent und die Claude-Anmeldung. Darum:
+#   www-data → direkt
+#   dev      → sudo -u www-data (einzige Regel in /etc/sudoers.d/wporbit-wp)
+#   root     → setpriv nach www-data
+# `--allow-root` wird entfernt: Es ist nie mehr nötig, und alte Befehle (Skills,
+# Gewohnheit) laufen so weiter.
+set -eu
+PHAR=/usr/local/bin/wp-cli.phar
+
+for arg do
+    shift
+    [ "$arg" = "--allow-root" ] && continue
+    set -- "$@" "$arg"
+done
+
+case "$(id -un)" in
+    www-data) exec "$PHAR" "$@" ;;
+    root)     exec setpriv --reuid=www-data --regid=www-data --init-groups --reset-env -- \
+                  env HOME=/tmp PATH="$PATH" "$PHAR" "$@" ;;
+    *)        exec sudo -n -u www-data -- "$PHAR" "$@" ;;
+esac

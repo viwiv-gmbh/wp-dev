@@ -48,6 +48,10 @@ Key files:
 - `Dockerfile`: image build definition.
 - `ssh/ssh_known_hosts`: pinned SSH host keys baked into the image.
 - `ssh/10-known-hosts.conf`: ssh client drop-in pointing at a writable `known_hosts`.
+- `bin/wp`: WP-CLI wrapper, always runs `wp-cli.phar` as `www-data`.
+- `bin/claude`: guard in front of Claude Code (refuses root under WPorbit).
+- `bin/sudoers-wporbit-wp`: the one sudo rule (`dev` → `www-data`, `wp-cli.phar` only).
+- `tests/no-root.sh`: checks the above against a built image.
 - `build.sh`: local build and optional push script.
 - `docker-compose.yml`: local runtime configuration.
 - `.env`: version and build parameters.
@@ -125,6 +129,12 @@ Compatibility guard:
 
 - If `CLAUDE_CODE_VERSION` is enabled but Node major is below 22, install is skipped with an informational message.
 
+Root guard (WPorbit Spec 017):
+
+- `claude` is a small wrapper; the real binary is `claude.real` next to it.
+- As root it warns. With `WPORBIT_CONTAINER_USER=dev` (set by WPorbit once its
+  Terminal and Claude run as `dev`) it refuses root and points to the Terminal.
+
 ## 7) SSH Host Keys
 
 Problem: home directories are frequently mounted read-only into the container
@@ -190,6 +200,9 @@ docker run --rm viwiv/wp-dev:7.0.2-php8.4-apache-node22.0.0 node -v
 
 ## 9) Security
 
+- WP-CLI always runs as `www-data` (`bin/wp`), so site code never runs as root
+  or `dev` and cannot reach the SSH agent or the Claude login. `dev` has exactly
+  one sudo rule: `wp-cli.phar` as `www-data`. Verify with `./tests/no-root.sh <image>`.
 - No private keys or certs in repository.
 - Keep credentials in GitHub Secrets.
 - Rotate Docker Hub token if exposure is suspected.
