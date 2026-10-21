@@ -29,8 +29,8 @@ Alle Versionen und Build-Parameter werden über `.env` gesteuert:
 
 ```bash
 NODE_VERSION=22.0.0
-PHP_VERSION=8.4
-WP_VERSION=7.0.2
+PHP_VERSION=8.5
+WP_VERSION=7.1.3
 VERSION=1.0.0
 APP_USER=dev
 APP_UID=1000
