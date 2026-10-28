@@ -19,7 +19,18 @@ done
 
 case "$(id -un)" in
     www-data) exec "$PHAR" "$@" ;;
-    root)     exec setpriv --reuid=www-data --regid=www-data --init-groups --reset-env -- \
-                  env HOME=/tmp PATH="$PATH" "$PHAR" "$@" ;;
-    *)        exec sudo -n -u www-data -- "$PHAR" "$@" ;;
+    root)
+        # setpriv leert die Umgebung. Zurück kommt nur die Konfiguration der
+        # Site: wp-config.php liest WORDPRESS_* (wp-config-docker.php des
+        # offiziellen Images); ohne sie sucht WordPress die Datenbank unter
+        # `mysql`. Für dev erledigt das env_keep in /etc/sudoers.d/wporbit-wp.
+        set -- "$PHAR" "$@"
+        for name in $(env | sed -n 's/^\(WORDPRESS_[A-Za-z0-9_]*\)=.*/\1/p' | sort -u); do
+            # Eine Zeile aus einem mehrzeiligen Wert ist keine Variable.
+            eval "[ -n \"\${$name+x}\" ]" || continue
+            eval "set -- \"$name=\${$name}\" \"\$@\""
+        done
+        exec setpriv --reuid=www-data --regid=www-data --init-groups --reset-env -- \
+            env HOME=/tmp PATH="$PATH" "$@" ;;
+    *)  exec sudo -n -u www-data -- "$PHAR" "$@" ;;
 esac

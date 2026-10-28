@@ -7,7 +7,14 @@ IMAGE="${1:?Image angeben, z. B. viwiv/wp-dev:7.1.2-php8.5-apache}"
 C="wp-dev-no-root-test-$$"
 fails=0
 
-docker run -d --rm --name "$C" --network none --entrypoint sleep "$IMAGE" 600 >/dev/null
+# Die Site-Konfiguration kommt wie bei WPorbit über die Umgebung (Compose setzt
+# WORDPRESS_DB_*; wp-config-docker.php liest sie). Eine mehrzeilige Variable,
+# deren zweite Zeile wie eine Zuweisung aussieht, und eine fremde Variable
+# prüfen, dass nur genau diese Konfiguration durchkommt.
+EXTRA=$'define( "A", 1 );\nWORDPRESS_UNTERGESCHOBEN=1\ndefine( "B", 2 );'
+docker run -d --rm --name "$C" --network none --entrypoint sleep \
+    -e WORDPRESS_DB_HOST=db -e WORDPRESS_CONFIG_EXTRA="$EXTRA" -e FREMD=geheim \
+    "$IMAGE" 600 >/dev/null
 trap 'docker rm -f "$C" >/dev/null 2>&1 || true' EXIT
 
 check() { # Beschreibung, Erwartung, Befehl…
@@ -31,6 +38,18 @@ check "wp als www-data läuft als www-data"        '^www-data$' asx www-data wp 
 check "wp als dev läuft als www-data (sudo)"      '^www-data$' asx dev      wp --skip-wordpress eval "$PROBE"
 check "wp als root läuft als www-data (setpriv)"  '^www-data$' asx root     wp --skip-wordpress eval "$PROBE"
 check "--allow-root wird geschluckt"              '^www-data$' asx root     wp --allow-root --skip-wordpress eval "$PROBE"
+# Ohne WORDPRESS_DB_* sucht wp-config.php die Datenbank unter `mysql`
+# („Error establishing a database connection“), nur weil `wp` den Benutzer wechselt.
+ENV_PROBE='echo getenv("WORDPRESS_DB_HOST") ?: "fehlt";'
+EXTRA_PROBE='echo getenv("WORDPRESS_CONFIG_EXTRA") === "define( \"A\", 1 );\nWORDPRESS_UNTERGESCHOBEN=1\ndefine( \"B\", 2 );" ? "gleich" : "anders";'
+OTHER_PROBE='echo (getenv("FREMD") === false ? "-" : "FREMD"), (getenv("WORDPRESS_UNTERGESCHOBEN") === false ? "-" : "UNTERGESCHOBEN"), " ", getenv("HOME");'
+check "wp als www-data sieht WORDPRESS_DB_HOST"   '^db$'       asx www-data wp --skip-wordpress eval "$ENV_PROBE"
+check "wp als dev sieht WORDPRESS_DB_HOST"        '^db$'       asx dev      wp --skip-wordpress eval "$ENV_PROBE"
+check "wp als root sieht WORDPRESS_DB_HOST"       '^db$'       asx root     wp --skip-wordpress eval "$ENV_PROBE"
+check "wp als dev: mehrzeilige Variable unverändert"  '^gleich$' asx dev  wp --skip-wordpress eval "$EXTRA_PROBE"
+check "wp als root: mehrzeilige Variable unverändert" '^gleich$' asx root wp --skip-wordpress eval "$EXTRA_PROBE"
+check "wp als dev: sonst keine Umgebung"          '^-- '       asx dev      wp --skip-wordpress eval "$OTHER_PROBE"
+check "wp als root: sonst keine Umgebung, HOME=/tmp" '^-- /tmp$' asx root   wp --skip-wordpress eval "$OTHER_PROBE"
 check "stdin kommt durch"                          '^hallo$'    as dev      "echo hallo | wp --skip-wordpress eval 'echo trim(stream_get_contents(STDIN));'"
 check "sudo -l als dev: nur wp-cli.phar"          '\(www-data\) NOPASSWD: /usr/local/bin/wp-cli.phar' as dev "sudo -n -l"
 check "sudo -l als dev: keine weitere Regel"      '^1$'        as dev      "sudo -n -l | grep -c NOPASSWD"
