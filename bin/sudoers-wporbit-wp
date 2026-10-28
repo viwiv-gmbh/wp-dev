@@ -1,3 +1,4 @@
 # Spec 017 B (WPorbit): dev darf WP-CLI nur als www-data starten, sonst nichts.
-Defaults:__APP_USER__ env_reset, secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# env_keep: wp-config.php liest die Datenbank-Konfiguration aus WORDPRESS_*.
+Defaults:__APP_USER__ env_reset, env_keep += "WORDPRESS_*", secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 __APP_USER__ ALL=(www-data) NOPASSWD: /usr/local/bin/wp-cli.phar
