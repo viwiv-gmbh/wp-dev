@@ -115,6 +115,19 @@ jobs:
             exit 1
           fi
 
+      # `latest` zeigt auf die Version aus .env. Ein manueller Lauf für eine
+      # ältere Version (Tags neu bauen) darf `latest` nicht zurücksetzen.
+      - name: Decide whether this run moves latest
+        id: latest
+        run: |
+          env_value() { grep -E "^$1=" .env | tail -n 1 | cut -d'=' -f2-; }
+          if [ "$WP_VERSION" = "$(env_value WP_VERSION)" ] && [ "$PHP_VERSION" = "$(env_value PHP_VERSION)" ]; then
+            echo "is_current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_current=false" >> "$GITHUB_OUTPUT"
+            echo "Version weicht von .env ab: latest bleibt unverändert."
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
@@ -172,7 +185,7 @@ jobs:
         with:
           images: viwiv/wp-dev
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ steps.latest.outputs.is_current == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-apache-node${{ steps.vars.outputs.node_version }}
             type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-node${{ steps.vars.outputs.node_version }}
             type=raw,value=${{ steps.vars.outputs.wp_version }}-php${{ steps.vars.outputs.php_version }}-apache
