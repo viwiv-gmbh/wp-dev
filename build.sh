@@ -24,7 +24,17 @@ VERSION=${VERSION:-1.0.0}
 NO_CACHE="${1:-}"
 PUSH="${2:-}"
 IMAGE_NAME="viwiv/wp-dev"
-VERSION_TAG="${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}"
+# Keep in sync with .github/workflows/publish-image.yml
+TAGS=(
+    "${WP_VERSION}-php${PHP_VERSION}-apache-node${NODE_VERSION}"
+    "${WP_VERSION}-php${PHP_VERSION}-node${NODE_VERSION}"
+    "${WP_VERSION}-php${PHP_VERSION}-apache"
+    "latest"
+)
+TAG_ARGS=()
+for tag in "${TAGS[@]}"; do
+    TAG_ARGS+=(-t "${IMAGE_NAME}:${tag}")
+done
 BASE_IMAGE="wordpress:${WP_VERSION}-php${PHP_VERSION}-apache"
 
 echo "🔎 Preflight: checking base image tag ${BASE_IMAGE}"
@@ -44,8 +54,7 @@ docker build ${NO_CACHE:+--no-cache} \
     --build-arg APP_UID=$APP_UID \
     --build-arg APP_GID=$APP_GID \
     --build-arg CLAUDE_CODE_VERSION=$CLAUDE_CODE_VERSION \
-    -t "${IMAGE_NAME}:${VERSION_TAG}" \
-    -t "${IMAGE_NAME}:latest" . || {
+    "${TAG_ARGS[@]}" . || {
     echo "❌ Docker build failed"
     exit 1
 }
@@ -53,10 +62,11 @@ docker build ${NO_CACHE:+--no-cache} \
 echo "✅ Docker build successful"
 
 if [ "$PUSH" == "push" ]; then
-    docker push "${IMAGE_NAME}:${VERSION_TAG}" && \
-    docker push "${IMAGE_NAME}:latest" && \
-        echo "✅ Docker push successful" || {
-        echo "❌ Docker push failed"
-        exit 1
-    }
+    for tag in "${TAGS[@]}"; do
+        docker push "${IMAGE_NAME}:${tag}" || {
+            echo "❌ Docker push failed: ${IMAGE_NAME}:${tag}"
+            exit 1
+        }
+    done
+    echo "✅ Docker push successful: ${TAGS[*]}"
 fi
