@@ -30,7 +30,7 @@ RUN set -eux; \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl iproute2 rsync wget zip unzip git libntirpc-dev vim python3-launchpadlib \
-    libmagickwand-dev libzip-dev mariadb-client openssh-client libgcc-s1 sudo && \
+    libmagickwand-dev libzip-dev mariadb-client openssh-client libgcc-s1 sudo socat procps && \
     cd /usr/bin && ln -sf python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/* 
 
@@ -103,9 +103,10 @@ ARG EXPECTED_SSH_FINGERPRINTS="SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOq
 
 COPY ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts
 COPY ssh/10-known-hosts.conf /etc/ssh/ssh_config.d/10-known-hosts.conf
+COPY ssh/20-wporbit.conf /etc/ssh/ssh_config.d/20-wporbit.conf
 
 RUN set -eux; \
-    chmod 0644 /etc/ssh/ssh_known_hosts /etc/ssh/ssh_config.d/10-known-hosts.conf; \
+    chmod 0644 /etc/ssh/ssh_known_hosts /etc/ssh/ssh_config.d/10-known-hosts.conf /etc/ssh/ssh_config.d/20-wporbit.conf; \
     for fp in $EXPECTED_SSH_FINGERPRINTS; do \
         ssh-keygen -lf /etc/ssh/ssh_known_hosts | grep -qF " $fp " || \
             { echo "Pinned SSH host key fingerprint missing: $fp"; exit 1; }; \
@@ -120,7 +121,8 @@ RUN set -eux; \
     chmod 0664 /var/lib/ssh/known_hosts
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY bin/wporbit-ssh-agent-proxy /usr/local/bin/wporbit-ssh-agent-proxy
+RUN chmod +x /entrypoint.sh /usr/local/bin/wporbit-ssh-agent-proxy
 
 # --- Kein root für Site-Code und Claude (Spec 017, WPorbit) -------------------
 # WP-CLI läuft immer als www-data: `wp` ist ein Wrapper vor wp-cli.phar, und

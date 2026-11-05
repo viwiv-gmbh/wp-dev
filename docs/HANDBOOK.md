@@ -233,3 +233,13 @@ MailHog/mhsendmail 404 notes:
 
 - Docker Hub repo should remain under company namespace.
 - Keep at least two maintainers with admin access.
+
+## SSH-Agent im Container (Spec 030 A, WPorbit)
+
+WPorbit mountet den Agent-Socket der VM nach `/run/ssh-agent-host.sock` (nur root). `entrypoint.sh` ruft
+`wporbit-ssh-agent-proxy` auf: `socat` legt `/ssh-agent` an (Besitzer `$APP_USER`, Modus 600) und reicht Verbindungen
+weiter. Apache und PHP (`www-data`) erreichen den Agent damit nicht. Fehlt `/run/ssh-agent-host.sock`, passiert nichts
+(ein altes Projekt, das den Socket noch direkt als `/ssh-agent` mountet, funktioniert wie bisher).
+
+Pro Git-Host bindet `ssh/20-wporbit.conf` die Datei `/etc/wporbit-ssh/config` ein (Spec 030 D, von WPorbit gemountet).
+Test: `./tests/ssh-agent-socket.sh <image>`.
