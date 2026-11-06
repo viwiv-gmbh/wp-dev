@@ -12,4 +12,7 @@ if mkdir -p /var/lib/ssh 2>/dev/null; then
     chmod 0664 /var/lib/ssh/known_hosts 2>/dev/null || true
 fi
 
+# Spec 030 A: /ssh-agent nur für $APP_USER (socat), nicht für www-data.
+/usr/local/bin/wporbit-ssh-agent-proxy || true
+
 exec /usr/local/bin/docker-entrypoint.sh apache2-foreground

@@ -1,0 +1,24 @@
+#!/bin/sh
+# Spec 030 A (WPorbit): Der SSH-Agent des Macs soll nur dem Benutzer $APP_USER
+# gehören, nicht der Gruppe www-data (Apache und PHP).
+#
+# WPorbit hängt den Socket der VM an /run/ssh-agent-host.sock; den erreicht nur
+# root. Dieses Skript (läuft als root, vom Einstiegspunkt) legt /ssh-agent an,
+# Besitzer $APP_USER, Modus 600, und reicht jede Verbindung dorthin weiter.
+# SSH_AUTH_SOCK=/ssh-agent bleibt, wie es ist.
+#
+# Fehlt der Host-Socket (Weitergabe aus, oder ein altes Projekt, das den Socket
+# noch direkt als /ssh-agent mountet), tut das Skript nichts.
+set -eu
+
+HOST_SOCK="${WPORBIT_SSH_AGENT_HOST_SOCK:-/run/ssh-agent-host.sock}"
+PROXY_SOCK="${WPORBIT_SSH_AGENT_SOCK:-/ssh-agent}"
+USER_NAME="${APP_USER:-dev}"
+
+[ -S "$HOST_SOCK" ] || exit 0
+command -v socat >/dev/null 2>&1 || { echo "wporbit-ssh-agent-proxy: socat fehlt" >&2; exit 0; }
+
+# Idempotent: ein früherer Proxy auf demselben Socket (docker start) weicht.
+pkill -f "UNIX-LISTEN:$PROXY_SOCK," 2>/dev/null || true
+
+socat "UNIX-LISTEN:$PROXY_SOCK,fork,unlink-early,user=$USER_NAME,mode=600" "UNIX-CONNECT:$HOST_SOCK" &
