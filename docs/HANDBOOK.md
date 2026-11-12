@@ -125,6 +125,10 @@ Disable explicitly:
 
 - `CLAUDE_CODE_VERSION=none` or `off`
 
+Home of `dev` (`~/.ssh`):
+
+- `/home/dev/.ssh` exists in the image (`dev`, `0700`). WPorbit bind-mounts the Mac's `known_hosts` read-only to `/home/dev/.ssh/known_hosts`; without the directory Docker would create it as root and `dev` could not write there.
+
 Compatibility guard:
 
 - If `CLAUDE_CODE_VERSION` is enabled but Node major is below 22, install is skipped with an informational message.

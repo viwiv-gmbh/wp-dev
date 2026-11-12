@@ -66,6 +66,7 @@ RUN (groupadd --gid $APP_GID "$APP_USER" || groupadd "$APP_USER" || true) && \
     chown -R $APP_USER:www-data /var/www && \
     chmod -R 775 /var/www && \
     chmod -R g+s /var/www && \
+    install -d -m 0700 -o $APP_USER /home/$APP_USER/.ssh && \
     chown -R $APP_USER:$APP_USER /home/$APP_USER
 RUN set -eux; \
     EXPECTED_SIGNATURE="$(curl -fsSL https://composer.github.io/installer.sig)"; \
